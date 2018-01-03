@@ -4,8 +4,9 @@
 
 ;; Author: Brantou <brantou89@gmail.com>
 ;; URL: http://github.com/brantou/inf-crystal.el
-;; Keywords: languages coffee
-;; Version: 0.0.1
+;; Keywords: languages crystal
+;; Version: 0.1.0
+;; Package-Requires: ((emacs "24.3"))
 
 ;; This program is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -177,4 +178,4 @@ Then switch to the process buffer."
       (comint-send-string (inf-crystal-proc) "\n"))))
 
 (provide 'inf-crystal)
-;;; inf-coffee.el ends here
+;;; inf-crystal.el ends here
