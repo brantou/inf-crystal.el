@@ -6,7 +6,7 @@
 ;; URL: http://github.com/brantou/inf-crystal.el
 ;; Keywords: languages crystal
 ;; Version: 0.1.0
-;; Package-Requires: ((emacs "24.3"))
+;; Package-Requires: ((emacs "24.3") (crystal-mode "0.1"))
 
 ;; This program is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -27,12 +27,26 @@
 ;;
 ;; inf-crystal provides a REPL buffer connected to a icr subprocess.
 ;;
+;; ### Installation
+;;
+;; #### Via package.el
+;;
+;; TODO
+;;
+;; #### Manual
+;;
 ;; If you're installing manually, you'll need to:
 ;; * drop the file somewhere on your load path (perhaps ~/.emacs.d)
 ;; * Add the following lines to your .emacs file:
 ;;
 ;;    (autoload 'inf-crystal "inf-crystal" "Run an inferior Crystal process" t)
 ;;    (add-hook 'crystal-mode-hook 'inf-crystal-minor-mode)
+;;
+;; ### Usage
+;;
+;; Run one of the predefined interactive functions.
+;;
+;; See [Function Documentation](#function-documentation) for details.
 ;;
 
 ;;; Code:
@@ -63,9 +77,12 @@ Also see the description of `ielm-prompt-read-only'."
   :group 'inf-crystal)
 
 (defvar inf-crystal-buffer  nil
-  "The live inf-crystal process buffer.")
+  "*The live inf-crystal process buffer.
 
-(defvar inferior-crystal-mode-hook '()
+For information on running multiple processes in multiple buffers, see
+the description of `inferior-lisp-buffer'.")
+
+(defvar inf-crystal-mode-hook '()
   "Hook for customizing Inferior Crystal mode.")
 
 (defcustom inf-crystal-prompt "icr([0-9]\\(\\.[0-9]+\\)+) >"
@@ -103,6 +120,7 @@ Also see the description of `ielm-prompt-read-only'."
       (buffer-substring (point) end))))
 
 (defun inf-crystal-preoutput-filter (output)
+  "Filter paste mode OUTPUT."
   (if (and (string-match "Ctrl-D" output) (string-match "paste mode" output))
       "\n"
     output))
@@ -113,7 +131,7 @@ Also see the description of `ielm-prompt-read-only'."
   (comint-send-string (inf-crystal-proc) "reset\n"))
 
 (defun inf-crystal-toggle-debug-mode ()
-  "Toggles debug mode off and on.
+  "Toggle debug mode off and on.
 In debug mode icr will print the code before executing it."
   (interactive)
   (comint-send-string (inf-crystal-proc) "debug\n"))
@@ -131,7 +149,8 @@ In debug mode icr will print the code before executing it."
 
 ;;;###autoload
 (defun inf-crystal (cmd)
-  "Launch a crystal interpreter using `inf-crystal-interpreter' as an inferior mode."
+  "Launch a crystal interpreter in a buffer.
+using `inf-crystal-interpreter'as an inferior mode."
   (interactive (list (if current-prefix-arg
                          (read-string "Run inf-crystal: " inf-crystal-interpreter)
                        inf-crystal-interpreter)))
@@ -149,19 +168,20 @@ In debug mode icr will print the code before executing it."
                            (cdr cmdlist)))
         (inf-crystal-mode)))
   (setq inf-crystal-buffer inf-crystal-buffer-name)
-  (pop-to-buffer-same-window inf-crystal-buffer-name))
+  (pop-to-buffer inf-crystal-buffer-name))
 
 ;;;###autoload
 (defalias 'run-crystal 'inf-crystal)
 
 (defun inf-crystal-proc()
   "Returns the current inferior crystal process.
+
 See variable `inf-crystal-buffer'."
   (let ((proc (get-buffer-process (if (derived-mode-p 'inf-crystal-mode)
                                       (current-buffer)
                                     inf-crystal-buffer))))
     (or proc
-        (error "No inf-crystal subprocess; see variable `inf-crystal-buffer'"))))
+        (error "No inf-crystal subprocess, see variable inf-crystal-buffer"))))
 
 (defun inf-crystal-buffer()
   "Returns the current inferior crystal buffer."
@@ -169,7 +189,7 @@ See variable `inf-crystal-buffer'."
                  (current-buffer)
                inf-crystal-buffer)))
     (or buf
-        (error "No inf-crystal buffer"))))
+        (error "No inf-crystal buffer, see variable inf-crystal-buffer"))))
 
 (defun crystal-switch-to-inf(eob-p)
   "Switch to the inf-crystal process buffer.
