@@ -27,6 +27,13 @@
 ;;
 ;; inf-crystal provides a REPL buffer connected to a icr subprocess.
 ;;
+;; If you're installing manually, you'll need to:
+;; * drop the file somewhere on your load path (perhaps ~/.emacs.d)
+;; * Add the following lines to your .emacs file:
+;;
+;;    (autoload 'inf-crystal "inf-crystal" "Run an inferior Crystal process" t)
+;;    (add-hook 'crystal-mode-hook 'inf-crystal-minor-mode)
+;;
 
 ;;; Code:
 
@@ -55,54 +62,127 @@ Also see the description of `ielm-prompt-read-only'."
   :type 'string
   :group 'inf-crystal)
 
-(defvar inf-crystal-buffer  nil "The live inf-crystal process buffer.")
+(defvar inf-crystal-buffer  nil
+  "The live inf-crystal process buffer.")
 
-(defvar inf-crystal-prompt "icr([0-9]\\(\\.[0-9]+\\)+) >")
+(defvar inferior-crystal-mode-hook '()
+  "Hook for customizing Inferior Crystal mode.")
 
-(define-derived-mode inf-crystal-mode comint-mode "INF-CRYSTAL"
-  "Major mode for interacting with a inf-crystal process."
+(defcustom inf-crystal-prompt "icr([0-9]\\(\\.[0-9]+\\)+) >"
+  "Regexp to recognize prompts in the Inferior Crystal mode."
+  :type 'regexp
+  :group 'inf-crystal)
+
+(defvar inf-crystal-mode-map
+  (let ((map (copy-keymap comint-mode-map)))
+        (define-key map (kbd "C-x C-e") 'crystal-send-last-sexp)
+        (define-key map (kbd "C-x C-d") 'inf-crystal-toggle-debug-mode)
+        (define-key map (kbd "C-x C-p") 'inf-crystal-enable-paste-mode)
+        (define-key map (kbd "C-x C-y") 'inf-crystal-disable-paste-mode)
+        (define-key map (kbd "C-x C-r") 'inf-crystal-reset)
+        map)
+  "Mode map for `inf-crystal-mode'.")
+
+(define-derived-mode inf-crystal-mode comint-mode "Inf-Crystal"
+  "Major mode for interacting with an icr process."
   :syntax-table crystal-mode-syntax-table
   (crystal-mode-variables)
   (setq-local font-lock-defaults '((crystal-font-lock-keywords)))
   (setq comint-prompt-regexp inf-crystal-prompt)
   (setq comint-process-echoes t)
   (setq comint-input-ignoredups t)
+  (setq comint-get-old-input (function inf-crystal-get-old-input))
+  (add-hook 'comint-preoutput-filter-functions 'inf-crystal-preoutput-filter nil t)
   (set (make-local-variable 'comint-prompt-read-only) inf-crystal-prompt-read-only))
 
-;;;###autoload
-(defun inf-crystal ()
-  "Launch a crystal interpreter using `inf-crystal-interpreter' as an inferior mode."
+(defun inf-crystal-get-old-input()
+  "Return a string containing the sexp ending at point."
+  (save-excursion
+    (let ((end (point)))
+      (crystal-backward-sexp)
+      (buffer-substring (point) end))))
+
+(defun inf-crystal-preoutput-filter (output)
+  (if (and (string-match "Ctrl-D" output) (string-match "paste mode" output))
+      "\n"
+    output))
+
+(defun inf-crystal-reset ()
+  "Clear out all of the accumulated commands."
   (interactive)
-  (let ((proc-buffer (comint-check-proc inf-crystal-buffer-name)))
-    (if proc-buffer
-        (pop-to-buffer inf-crystal-buffer-name)
-      (progn
+  (comint-send-string (inf-crystal-proc) "reset\n"))
+
+(defun inf-crystal-toggle-debug-mode ()
+  "Toggles debug mode off and on.
+In debug mode icr will print the code before executing it."
+  (interactive)
+  (comint-send-string (inf-crystal-proc) "debug\n"))
+
+(defun inf-crystal-enable-paste-mode ()
+  "Enable paste mode."
+  (interactive)
+  (comint-send-string (inf-crystal-proc) "paste\n"))
+
+(defun inf-crystal-disable-paste-mode ()
+  "Disable paste mode."
+  (interactive)
+  (with-current-buffer (inf-crystal-buffer)
+    (comint-send-eof)))
+
+;;;###autoload
+(defun inf-crystal (cmd)
+  "Launch a crystal interpreter using `inf-crystal-interpreter' as an inferior mode."
+  (interactive (list (if current-prefix-arg
+                         (read-string "Run inf-crystal: " inf-crystal-interpreter)
+                       inf-crystal-interpreter)))
+  (if (not (comint-check-proc inf-crystal-buffer-name))
+      (let ((cmdlist (split-string cmd))
+            (name "crystal"))
+        (unless (member "--no-color" cmdlist)
+          (setq cmdlist (append cmdlist '("--no-color"))))
+        (message (format "cmdlist: %s" cmdlist))
         (set-buffer (apply 'make-comint-in-buffer
-                           inf-crystal-interpreter
+                           name
                            (get-buffer-create inf-crystal-buffer-name)
-                           inf-crystal-interpreter
+                           (car cmdlist)
                            nil
-                           '("--no-color")))
-        (with-current-buffer inf-crystal-buffer-name
-          (inf-crystal-mode)
-          (setq inf-crystal-buffer (current-buffer)))
-        (pop-to-buffer inf-crystal-buffer-name)))))
+                           (cdr cmdlist)))
+        (inf-crystal-mode)))
+  (setq inf-crystal-buffer inf-crystal-buffer-name)
+  (pop-to-buffer-same-window inf-crystal-buffer-name))
 
 ;;;###autoload
 (defalias 'run-crystal 'inf-crystal)
 
 (defun inf-crystal-proc()
-  (unless (comint-check-proc inf-crystal-buffer-name)
-    (inf-crystal))
-  (get-buffer-process inf-crystal-buffer-name))
+  "Returns the current inferior crystal process.
+See variable `inf-crystal-buffer'."
+  (let ((proc (get-buffer-process (if (derived-mode-p 'inf-crystal-mode)
+                                      (current-buffer)
+                                    inf-crystal-buffer))))
+    (or proc
+        (error "No inf-crystal subprocess; see variable `inf-crystal-buffer'"))))
+
+(defun inf-crystal-buffer()
+  "Returns the current inferior crystal buffer."
+  (let ((buf (if (derived-mode-p 'inf-crystal-mode)
+                 (current-buffer)
+               inf-crystal-buffer)))
+    (or buf
+        (error "No inf-crystal buffer"))))
 
 (defun crystal-switch-to-inf(eob-p)
   "Switch to the inf-crystal process buffer.
 With argument, positions cursor at end of buffer."
   (interactive "P")
-  (unless inf-crystal-buffer
-    (inf-crystal))
-  (pop-to-buffer inf-crystal-buffer)
+  (if (get-buffer-process inf-crystal-buffer)
+      (let ((pop-up-frames
+             ;; Be willing to use another frame
+             ;; that already has the window in it.
+             (or pop-up-frames
+                 (get-buffer-window inf-crystal-buffer t))))
+        (pop-to-buffer inf-crystal-buffer))
+    (run-crystal inf-crystal-interpreter))
   (cond (eob-p
          (push-mark)
          (goto-char (point-max)))))
@@ -172,10 +252,55 @@ Then switch to the process buffer."
   (let* ((string (buffer-substring-no-properties start end))
          (_ (string-match "\\`\n*\\(.*\\)" string)))
     (message "Sent: %s..." (match-string 1 string))
-    (comint-send-string (inf-crystal-proc) string)
+    (if (string-match ".\n+." string) ;Multiline
+        (progn
+          (comint-send-string (inf-crystal-proc) "paste\n")
+          (comint-send-string (inf-crystal-proc) string)
+          (with-current-buffer (inf-crystal-buffer)
+            (comint-send-eof)))
+      (comint-send-string (inf-crystal-proc) string))
     (when (or (not (string-match "\n\\'" string))
               (string-match "\n[ \t].*\n?\\'" string))
       (comint-send-string (inf-crystal-proc) "\n"))))
+
+(defvar inf-crystal-minor-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "C-M-x") 'crystal-send-definition)
+    (define-key map (kbd "C-x C-e") 'crystal-send-last-sexp)
+    ;;(define-key map (kbd "C-c C-b") 'crystal-send-block)
+    ;;(define-key map (kbd "C-c M-b") 'crystal-send-block-and-go)
+    (define-key map (kbd "C-c C-x") 'crystal-send-definition)
+    (define-key map (kbd "C-c M-x") 'crystal-send-definition-and-go)
+    (define-key map (kbd "C-c C-r") 'crystal-send-region)
+    (define-key map (kbd "C-c M-r") 'crystal-send-region-and-go)
+    (define-key map (kbd "C-c C-z") 'crystal-switch-to-inf)
+    (define-key map (kbd "C-c C-s") 'inf-crystal)
+    (easy-menu-define
+      inf-crystal-minor-mode-menu
+      map
+      "Inferior Crystal Minor Mode Menu"
+      '("Inf-Crystal"
+        ["Send definition" crystal-send-definition t]
+        ["Send last expression" crystal-send-last-sexp t]
+        ;;["Send block" crystal-send-block t]
+        ["Send buffer" crystal-send-buffer t]
+        ["Send region" crystal-send-region t]
+        "--"
+        ["Start REPL" inf-crystal t]
+        ["Switch to REPL" crystal-switch-to-inf t]
+        ))
+    map))
+
+;;;###autoload
+(define-minor-mode inf-crystal-minor-mode
+  "Minor mode for interacting with the inferior process buffer.
+
+The following commands are available:
+
+\\{inf-crystal-minor-mode-map}"
+  :lighter "" :keymap inf-crystal-minor-mode-map)
+
+;;;###autoload (add-hook 'crystal-mode-hook 'inf-crystal-minor-mode)
 
 (provide 'inf-crystal)
 ;;; inf-crystal.el ends here
