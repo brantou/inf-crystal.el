@@ -65,35 +65,35 @@ using ‘inf-crystal-interpreter’as an inferior mode.
 
 <!-- Error: (wrong-number-of-arguments function 2) -->
 
-#### `(crystal-send-region-and-go START END)`
+#### `(crystal-send-last-sexp)`
 
-Send the current region to the inferior Crystal process.
-Then switch to the process buffer.
+Send the previous sexp to the inferior crystal process.
+
+#### `(crystal-send-line)`
+
+Send the current line to the inf-crystal process.
+
+#### `(crystal-send-definition)`
+
+Send the current definition to the inferior crystal process.
 
 #### `(crystal-send-definition-and-go)`
 
 Send the current definition to the inferior Crystal.
 Then switch to the process buffer.
 
-#### `(crystal-send-definition)`
+#### `(crystal-send-region START END)`
 
-Send the current definition to the inferior crystal process.
+Send the current region to the inf-crystal process.
 
-#### `(crystal-send-last-sexp)`
+#### `(crystal-send-region-and-go START END)`
 
-Send the previous sexp to the inferior crystal process.
+Send the current region to the inferior Crystal process.
+Then switch to the process buffer.
 
 #### `(crystal-send-buffer)`
 
 Send the current buffer to the inf-crystal process.
-
-#### `(crystal-send-line)`
-
-Send the current line to the inf-crystal process.
-
-#### `(crystal-send-region START END)`
-
-Send the current region to the inf-crystal process.
 
 -----
 <div style="padding-top:15px;color: #d0d0d0;">
