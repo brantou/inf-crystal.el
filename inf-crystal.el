@@ -207,20 +207,28 @@ With argument, positions cursor at end of buffer."
          (push-mark)
          (goto-char (point-max)))))
 
-(defun crystal-send-region-and-go (start end)
-  "Send the current region to the inferior Crystal process.
-Then switch to the process buffer."
-  (interactive "r")
-  (crystal-send-region start end)
-  (crystal-switch-to-inf t))
-
-(defun crystal-send-definition-and-go ()
-  "Send the current definition to the inferior Crystal.
-Then switch to the process buffer."
+(defun crystal-send-last-sexp ()
+  "Send the previous sexp to the inferior crystal process."
   (interactive)
-  (crystal-send-definition)
-  (crystal-switch-to-inf t))
+  (crystal-send-region (save-excursion (crystal-backward-sexp) (point)) (point)))
 
+(defun crystal-send-line ()
+  "Send the current line to the inf-crystal process."
+  (interactive)
+  (save-restriction
+    (widen)
+    (crystal-send-region (point-at-bol) (point-at-eol))))
+
+;;(defun crystal-send-block ()
+;;  "Send the current block to the inferior Crystal process."
+;;  (interactive)
+;;  (save-excursion
+;;    (crystal-end-of-block)
+;;    (end-of-line)
+;;    (let ((end (point)))
+;;      (crystal-beginning-of-block)
+;;      (crystal-send-region (point) end))))
+;;
 ;;(defun crystal-send-block-and-go ()
 ;;  "Send the current block to the inferior Crystal.
 ;;Then switch to the process buffer."
@@ -237,34 +245,12 @@ Then switch to the process buffer."
       (crystal-beginning-of-defun)
       (crystal-send-region (point) end))))
 
-(defun crystal-send-last-sexp ()
-  "Send the previous sexp to the inferior crystal process."
+(defun crystal-send-definition-and-go ()
+  "Send the current definition to the inferior Crystal.
+Then switch to the process buffer."
   (interactive)
-  (crystal-send-region (save-excursion (crystal-backward-sexp) (point)) (point)))
-
-;;(defun crystal-send-block ()
-;;  "Send the current block to the inferior Crystal process."
-;;  (interactive)
-;;  (save-excursion
-;;    (crystal-end-of-block)
-;;    (end-of-line)
-;;    (let ((end (point)))
-;;      (crystal-beginning-of-block)
-;;      (crystal-send-region (point) end))))
-
-(defun crystal-send-buffer ()
-  "Send the current buffer to the inf-crystal process."
-  (interactive)
-  (save-restriction
-    (widen)
-    (crystal-send-region (point-min) (point-max))))
-
-(defun crystal-send-line ()
-  "Send the current line to the inf-crystal process."
-  (interactive)
-  (save-restriction
-    (widen)
-    (crystal-send-region (point-at-bol) (point-at-eol))))
+  (crystal-send-definition)
+  (crystal-switch-to-inf t))
 
 (defun crystal-send-region (start end)
   "Send the current region to the inf-crystal process."
@@ -282,6 +268,20 @@ Then switch to the process buffer."
     (when (or (not (string-match "\n\\'" string))
               (string-match "\n[ \t].*\n?\\'" string))
       (comint-send-string (inf-crystal-proc) "\n"))))
+
+(defun crystal-send-region-and-go (start end)
+  "Send the current region to the inferior Crystal process.
+Then switch to the process buffer."
+  (interactive "r")
+  (crystal-send-region start end)
+  (crystal-switch-to-inf t))
+
+(defun crystal-send-buffer ()
+  "Send the current buffer to the inf-crystal process."
+  (interactive)
+  (save-restriction
+    (widen)
+    (crystal-send-region (point-min) (point-max))))
 
 (defvar inf-crystal-minor-mode-map
   (let ((map (make-sparse-keymap)))
