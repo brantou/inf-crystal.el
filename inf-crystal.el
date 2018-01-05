@@ -339,7 +339,8 @@ Then switch to the process buffer."
 The following commands are available:
 
 \\{inf-crystal-minor-mode-map}"
-  :lighter "" :keymap inf-crystal-minor-mode-map)
+  :lighter "Icr"
+  :keymap inf-crystal-minor-mode-map)
 
 ;;;###autoload (add-hook 'crystal-mode-hook 'inf-crystal-minor-mode)
 
