@@ -1,12 +1,17 @@
 ;;; inf-crystal.el --- Run a Inferior-Crystal process in a buffer
 
-;; Copyright (C) 2017 Brantou
+;; Copyright (C) 2017-2018 Brantou
 
 ;; Author: Brantou <brantou89@gmail.com>
 ;; URL: http://github.com/brantou/inf-crystal.el
+;; Package-Version: 20180105.1610
 ;; Keywords: languages crystal
 ;; Version: 0.1.0
 ;; Package-Requires: ((emacs "24.3") (crystal-mode "0.1.0"))
+
+;; This file is not part of GNU Emacs.
+
+;;; License:
 
 ;; This program is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -21,11 +26,17 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-;; This file is not part of GNU Emacs.
-
 ;;; Commentary:
 ;;
-;; inf-crystal provides a REPL buffer connected to a icr subprocess.
+;; inf-crystal provides a REPL buffer connected
+;; to a [icr](https://github.com/crystal-community/icr) subprocess.
+;;
+;; ### ICR
+;;
+;; To be able to connect to [inf-crystal](https://github.com/brantou/inf-crystal.el),
+;; you need to make sure that [icr](https://github.com/crystal-community/icr) is installed.
+;; Installation instructions can be found on
+;; the main page of [icr](https://github.com/crystal-community/icr#installation).
 ;;
 ;; ### Installation
 ;;
@@ -39,8 +50,10 @@
 ;; * drop the file somewhere on your load path (perhaps ~/.emacs.d)
 ;; * Add the following lines to your .emacs file:
 ;;
+;; ```elisp
 ;;    (autoload 'inf-crystal "inf-crystal" "Run an inferior Crystal process" t)
 ;;    (add-hook 'crystal-mode-hook 'inf-crystal-minor-mode)
+;; ```
 ;;
 ;; ### Usage
 ;;

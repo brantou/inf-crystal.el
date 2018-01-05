@@ -4,7 +4,15 @@
 ---
 [![License GPLv3](https://img.shields.io/badge/license-GPL_v3-green.svg)](http://www.gnu.org/licenses/gpl-3.0.html)
 
-inf-crystal provides a REPL buffer connected to a icr subprocess.
+inf-crystal provides a REPL buffer connected
+to a [icr](https://github.com/crystal-community/icr) subprocess.
+
+### ICR
+
+To be able to connect to [inf-crystal](https://github.com/brantou/inf-crystal.el),
+you need to make sure that [icr](https://github.com/crystal-community/icr) is installed.
+Installation instructions can be found on
+the main page of [icr](https://github.com/crystal-community/icr#installation).
 
 ### Installation
 
@@ -18,8 +26,10 @@ If you're installing manually, you'll need to:
 * drop the file somewhere on your load path (perhaps ~/.emacs.d)
 * Add the following lines to your .emacs file:
 
+```elisp
    (autoload 'inf-crystal "inf-crystal" "Run an inferior Crystal process" t)
    (add-hook 'crystal-mode-hook 'inf-crystal-minor-mode)
+```
 
 ### Usage
 
