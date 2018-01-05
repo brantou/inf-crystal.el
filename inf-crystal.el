@@ -100,6 +100,19 @@ the description of `inferior-lisp-buffer'.")
         map)
   "Mode map for `inf-crystal-mode'.")
 
+(easy-menu-define
+  inf-crystal-menu
+  inf-crystal-mode-map
+  "Inf Crystal Menu"
+  '("Inf-Crystal"
+    ["Eval Last Sexp" crystal-send-last-sexp t]
+    "--"
+    ["Enable paste mode" inf-crystal-enable-paste-mode t]
+    ["Disable paste mode" inf-crystal-disable-paste-mode t]
+    "--"
+    ["Toggle debug mode" inf-crystal-toggle-debug-mode t]
+    ["Reset repl" inf-crystal-reset t]))
+
 (define-derived-mode inf-crystal-mode comint-mode "Inf-Crystal"
   "Major mode for interacting with an icr process."
   :syntax-table crystal-mode-syntax-table
@@ -283,12 +296,20 @@ Then switch to the process buffer."
     (widen)
     (crystal-send-region (point-min) (point-max))))
 
+(defun crystal-send-buffer-and-go ()
+  "Send the current buffer to the inf-crystal process.
+Then switch to the process buffer."
+  (interactive)
+  (crystal-send-buffer)
+  (crystal-switch-to-inf t))
+
 (defvar inf-crystal-minor-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "C-M-x") 'crystal-send-definition)
     (define-key map (kbd "C-x C-e") 'crystal-send-last-sexp)
-    ;;(define-key map (kbd "C-c C-b") 'crystal-send-block)
-    ;;(define-key map (kbd "C-c M-b") 'crystal-send-block-and-go)
+    (define-key map (kbd "C-c C-l") 'crystal-send-line)
+    (define-key map (kbd "C-c C-b") 'crystal-send-buffer)
+    (define-key map (kbd "C-c M-b") 'crystal-send-buffer-and-go)
     (define-key map (kbd "C-c C-x") 'crystal-send-definition)
     (define-key map (kbd "C-c M-x") 'crystal-send-definition-and-go)
     (define-key map (kbd "C-c C-r") 'crystal-send-region)
@@ -300,9 +321,9 @@ Then switch to the process buffer."
       map
       "Inferior Crystal Minor Mode Menu"
       '("Inf-Crystal"
-        ["Send definition" crystal-send-definition t]
         ["Send last expression" crystal-send-last-sexp t]
-        ;;["Send block" crystal-send-block t]
+        ["Send line" crystal-send-line t]
+        ["Send definition" crystal-send-definition t]
         ["Send buffer" crystal-send-buffer t]
         ["Send region" crystal-send-region t]
         "--"
