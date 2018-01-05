@@ -31,12 +31,6 @@ See [Function Documentation](#function-documentation) for details.
 ### Function Documentation
 
 
-<!-- Error: (wrong-number-of-arguments function 2) -->
-
-#### `(inf-crystal-preoutput-filter OUTPUT)`
-
-Filter paste mode OUTPUT.
-
 #### `(inf-crystal-reset)`
 
 Clear out all of the accumulated commands.
@@ -59,6 +53,10 @@ Disable paste mode.
 Launch a crystal interpreter in a buffer.
 using ‘inf-crystal-interpreter’as an inferior mode.
 
+Argument CMD defaults to ‘inf-crystal-interpreter’.
+When called interactively with ‘prefix-arg’, it allows
+the user to edit such value.
+
 <!-- Error: (wrong-number-of-arguments function 2) -->
 
 <!-- Error: (wrong-number-of-arguments function 2) -->
@@ -71,7 +69,7 @@ Send the previous sexp to the inferior crystal process.
 
 #### `(crystal-send-line)`
 
-Send the current line to the inf-crystal process.
+Send the current line to the inferior crystal process.
 
 #### `(crystal-send-definition)`
 
@@ -84,16 +82,21 @@ Then switch to the process buffer.
 
 #### `(crystal-send-region START END)`
 
-Send the current region to the inf-crystal process.
+Send the region delimited by START and END to inferior crystal process.
 
 #### `(crystal-send-region-and-go START END)`
 
-Send the current region to the inferior Crystal process.
+Send the region delimited by START and END to inferior crystal process.
 Then switch to the process buffer.
 
 #### `(crystal-send-buffer)`
 
-Send the current buffer to the inf-crystal process.
+Send the current buffer to the inferior crystal process.
+
+#### `(crystal-send-buffer-and-go)`
+
+Send the current buffer to the inferior crystal process.
+Then switch to the process buffer.
 
 -----
 <div style="padding-top:15px;color: #d0d0d0;">

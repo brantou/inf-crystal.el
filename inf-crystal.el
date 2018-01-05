@@ -6,7 +6,7 @@
 ;; URL: http://github.com/brantou/inf-crystal.el
 ;; Keywords: languages crystal
 ;; Version: 0.1.0
-;; Package-Requires: ((emacs "24.3") (crystal-mode "0.1"))
+;; Package-Requires: ((emacs "24.3") (crystal-mode "0.1.0"))
 
 ;; This program is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -55,7 +55,7 @@
 (require 'crystal-mode)
 
 (defgroup inf-crystal nil
-  "Run inf-crystal process in a buffer"
+  "Run inferior crystal process in a buffer"
   :group 'languages)
 
 (defcustom inf-crystal-prompt-read-only t
@@ -66,18 +66,18 @@ Also see the description of `ielm-prompt-read-only'."
   :group 'inf-crystal)
 
 (defcustom inf-crystal-buffer-name "*inferior-crystal*"
-  "Default buffer name for inf-crystal interpreter."
+  "Default buffer name for ‘inf-crystal’."
   :type 'string
   :group 'inf-crystal
   :safe 'stringp)
 
 (defcustom inf-crystal-interpreter "icr"
-  "Default crystal interpreter for inf-crystal."
+  "Default crystal interpreter for ‘inf-crystal’."
   :type 'string
   :group 'inf-crystal)
 
 (defvar inf-crystal-buffer  nil
-  "*The live inf-crystal process buffer.
+  "*The live ‘inf-crystal’ process buffer.
 
 For information on running multiple processes in multiple buffers, see
 the description of `inferior-lisp-buffer'.")
@@ -121,18 +121,18 @@ the description of `inferior-lisp-buffer'.")
   (setq comint-prompt-regexp inf-crystal-prompt)
   (setq comint-process-echoes t)
   (setq comint-input-ignoredups t)
-  (setq comint-get-old-input (function inf-crystal-get-old-input))
-  (add-hook 'comint-preoutput-filter-functions 'inf-crystal-preoutput-filter nil t)
+  (setq comint-get-old-input (function inf-crystal--get-old-input))
+  (add-hook 'comint-preoutput-filter-functions 'inf-crystal--preoutput-filter nil t)
   (set (make-local-variable 'comint-prompt-read-only) inf-crystal-prompt-read-only))
 
-(defun inf-crystal-get-old-input()
+(defun inf-crystal--get-old-input()
   "Return a string containing the sexp ending at point."
   (save-excursion
     (let ((end (point)))
       (crystal-backward-sexp)
       (buffer-substring (point) end))))
 
-(defun inf-crystal-preoutput-filter (output)
+(defun inf-crystal--preoutput-filter (output)
   "Filter paste mode OUTPUT."
   (if (and (string-match "Ctrl-D" output) (string-match "paste mode" output))
       "\n"
@@ -163,7 +163,11 @@ In debug mode icr will print the code before executing it."
 ;;;###autoload
 (defun inf-crystal (cmd)
   "Launch a crystal interpreter in a buffer.
-using `inf-crystal-interpreter'as an inferior mode."
+using `inf-crystal-interpreter'as an inferior mode.
+
+Argument CMD defaults to `inf-crystal-interpreter'.
+When called interactively with `prefix-arg', it allows
+the user to edit such value."
   (interactive (list (if current-prefix-arg
                          (read-string "Run inf-crystal: " inf-crystal-interpreter)
                        inf-crystal-interpreter)))
@@ -188,7 +192,6 @@ using `inf-crystal-interpreter'as an inferior mode."
 
 (defun inf-crystal-proc()
   "Returns the current inferior crystal process.
-
 See variable `inf-crystal-buffer'."
   (let ((proc (get-buffer-process (if (derived-mode-p 'inf-crystal-mode)
                                       (current-buffer)
@@ -197,7 +200,8 @@ See variable `inf-crystal-buffer'."
         (error "No inf-crystal subprocess, see variable inf-crystal-buffer"))))
 
 (defun inf-crystal-buffer()
-  "Returns the current inferior crystal buffer."
+  "Returns the current inferior crystal buffer.
+See variable `inf-crystal-buffer'."
   (let ((buf (if (derived-mode-p 'inf-crystal-mode)
                  (current-buffer)
                inf-crystal-buffer)))
@@ -226,7 +230,7 @@ With argument, positions cursor at end of buffer."
   (crystal-send-region (save-excursion (crystal-backward-sexp) (point)) (point)))
 
 (defun crystal-send-line ()
-  "Send the current line to the inf-crystal process."
+  "Send the current line to the inferior crystal process."
   (interactive)
   (save-restriction
     (widen)
@@ -266,7 +270,7 @@ Then switch to the process buffer."
   (crystal-switch-to-inf t))
 
 (defun crystal-send-region (start end)
-  "Send the current region to the inf-crystal process."
+   "Send the region delimited by START and END to inferior crystal process."
   (interactive "r")
   (let* ((string (buffer-substring-no-properties start end))
          (_ (string-match "\\`\n*\\(.*\\)" string)))
@@ -283,21 +287,21 @@ Then switch to the process buffer."
       (comint-send-string (inf-crystal-proc) "\n"))))
 
 (defun crystal-send-region-and-go (start end)
-  "Send the current region to the inferior Crystal process.
+  "Send the region delimited by START and END to inferior crystal process.
 Then switch to the process buffer."
   (interactive "r")
   (crystal-send-region start end)
   (crystal-switch-to-inf t))
 
 (defun crystal-send-buffer ()
-  "Send the current buffer to the inf-crystal process."
+  "Send the current buffer to the inferior crystal process."
   (interactive)
   (save-restriction
     (widen)
     (crystal-send-region (point-min) (point-max))))
 
 (defun crystal-send-buffer-and-go ()
-  "Send the current buffer to the inf-crystal process.
+  "Send the current buffer to the inferior crystal process.
 Then switch to the process buffer."
   (interactive)
   (crystal-send-buffer)
@@ -339,7 +343,7 @@ Then switch to the process buffer."
 The following commands are available:
 
 \\{inf-crystal-minor-mode-map}"
-  :lighter "Icr"
+  :lighter " Icr"
   :keymap inf-crystal-minor-mode-map)
 
 ;;;###autoload (add-hook 'crystal-mode-hook 'inf-crystal-minor-mode)
