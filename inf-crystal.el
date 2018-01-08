@@ -1,12 +1,12 @@
-;;; inf-crystal.el --- Run a Inferior-Crystal process in a buffer
+;;; inf-crystal.el --- Run a Inferior-Crystal process in a buffer -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2017-2018 Brantou
 
 ;; Author: Brantou <brantou89@gmail.com>
-;; URL: http://github.com/brantou/inf-crystal.el
+;; URL: https://github.com/brantou/inf-crystal.el
 ;; Package-Version: 20180105.1610
 ;; Keywords: languages crystal
-;; Version: 0.1.0
+;; Version: 0.1.1
 ;; Package-Requires: ((emacs "24.3") (crystal-mode "0.1.0"))
 
 ;; This file is not part of GNU Emacs.
@@ -30,6 +30,19 @@
 ;;
 ;; inf-crystal provides a REPL buffer connected
 ;; to a [icr](https://github.com/crystal-community/icr) subprocess.
+;;
+;; It's based on ideas from the popular `inferior-lisp` package.
+;;
+;; `inf-crystal` has two components - a basic crystal REPL
+;; and a minor mode (`inf-crystal-minor-mode`), which
+;; extends `crystal-mode` with commands to evaluate forms directly in the
+;; REPL.
+;;
+;; `inf-crystal` provides a set of essential features for interactive
+;; Crystal development:
+;;
+;; * REPL
+;; * Interactive code evaluation
 ;;
 ;; ### ICR
 ;;
@@ -68,8 +81,10 @@
 (require 'crystal-mode)
 
 (defgroup inf-crystal nil
-  "Run inferior crystal process in a buffer"
-  :group 'languages)
+  "Run inferior crystal process in an Emacs buffer"
+  :group 'crystal
+  :link '(url-link :tag "GitHub" "https://github.com/brantou/inf-crystal.el")
+  :link '(emacs-commentary-link :tag "Commentary" "inf-crystal"))
 
 (defcustom inf-crystal-prompt-read-only t
   "If non-nil, the prompt will be read-only.
@@ -78,11 +93,19 @@ Also see the description of `ielm-prompt-read-only'."
   :type 'boolean
   :group 'inf-crystal)
 
+(defcustom inf-crystal-filter-regexp
+  "\\`\\s *\\(:\\(\\w\\|\\s_\\)\\)?\\s *\\'"
+  "What not to save on inferior Crystal's input history.
+Input matching this regexp is not saved on the input history in Inferior Crystal
+mode.  Default is whitespace followed by 0 or 1 single-letter colon-keyword
+\(as in :a, :c, etc.)"
+  :type 'regexp)
+
 (defcustom inf-crystal-buffer-name "*inferior-crystal*"
   "Default buffer name for ‘inf-crystal’."
   :type 'string
-  :group 'inf-crystal
-  :safe 'stringp)
+  :safe 'stringp
+  :group 'inf-crystal)
 
 (defcustom inf-crystal-interpreter "icr"
   "Default crystal interpreter for ‘inf-crystal’."
@@ -92,8 +115,38 @@ Also see the description of `ielm-prompt-read-only'."
 (defvar inf-crystal-buffer  nil
   "*The live ‘inf-crystal’ process buffer.
 
-For information on running multiple processes in multiple buffers, see
-the description of `inferior-lisp-buffer'.")
+MULTIPLE PROCESS SUPPORT
+===========================================================================
+To run multiple Crystal processes, you start the first up
+with \\[inf-crystal].  It will be in a buffer named `*inf-crystal*'.
+Rename this buffer with \\[rename-buffer].  You may now start up a new
+process with another \\[inf-crystal].  It will be in a new buffer,
+named `*inf-crystal*'.  You can switch between the different process
+buffers with \\[switch-to-buffer].
+
+Commands that send text from source buffers to Crystal processes --
+like `crystal-send-definition' or `crystal-send-region' -- have to choose a
+process to send to, when you have more than one Crystal process around.  This
+is determined by the global variable `inf-crystal-buffer'.  Suppose you
+have three inferior Crystals running:
+    Buffer              Process
+    foo                 inf-crystal
+    bar                 inf-crystal<2>
+    *inf-crystal*       inf-crystal<3>
+If you do a \\[crystal-send-definition] command on some Crystal source code,
+what process do you send it to?
+
+- If you're in a process buffer (foo, bar, or *inf-crystal*),
+  you send it to that process.
+- If you're in some other buffer (e.g., a source file), you
+  send it to the process attached to buffer `inf-crystal-buffer'.
+This process selection is performed by function `inf-crystal-proc'.
+
+Whenever \\[inf-crystal] fires up a new process, it resets
+`inf-crystal-buffer' to be the new process's buffer.  If you only run
+one process, this does the right thing.  If you run multiple
+processes, you might need to change `inf-crystal-buffer' to
+whichever process buffer you want to use.")
 
 (defvar inf-crystal-mode-hook '()
   "Hook for customizing Inferior Crystal mode.")
@@ -103,40 +156,55 @@ the description of `inferior-lisp-buffer'.")
   :type 'regexp
   :group 'inf-crystal)
 
+(defcustom inf-crystal-use-same-window nil
+  "Controls whether to display the REPL buffer in the current window or not."
+  :type '(choice (const :tag "same" t)
+                 (const :tag "different" nil))
+  :safe #'booleanp
+  :group 'inf-crystal)
+
 (defvar inf-crystal-mode-map
   (let ((map (copy-keymap comint-mode-map)))
-        (define-key map (kbd "C-x C-e") 'crystal-send-last-sexp)
-        (define-key map (kbd "C-x C-d") 'inf-crystal-toggle-debug-mode)
-        (define-key map (kbd "C-x C-p") 'inf-crystal-enable-paste-mode)
-        (define-key map (kbd "C-x C-y") 'inf-crystal-disable-paste-mode)
-        (define-key map (kbd "C-x C-r") 'inf-crystal-reset)
-        map)
+    (define-key map (kbd "C-x C-e") 'crystal-send-last-sexp)
+    (define-key map (kbd "C-c C-d") 'inf-crystal-toggle-debug-mode)
+    (define-key map (kbd "C-c C-p") 'inf-crystal-enable-paste-mode)
+    (define-key map (kbd "C-c C-y") 'inf-crystal-disable-paste-mode)
+    (define-key map (kbd "C-c C-r") 'inf-crystal-reset)
+    (define-key map (kbd "C-c M-o") 'inf-crystal-clear-repl-buffer)
+    (define-key map (kbd "C-c C-q") 'inf-crystal-quit)
+    (easy-menu-define
+      inf-crystal-menu
+      inf-crystal-mode-map
+      "Inf Crystal Menu"
+      '("Inf-Crystal"
+        ["Eval Last Sexp" crystal-send-last-sexp t]
+        "--"
+        ["Toggle debug mode" inf-crystal-toggle-debug-mode t]
+        ["Reset repl" inf-crystal-reset t]
+        "--"
+        ["Enable paste mode" inf-crystal-enable-paste-mode t]
+        ["Disable paste mode" inf-crystal-disable-paste-mode t]
+        "--"
+        ["Clear REPL" inf-crystal-clear-repl-buffer]
+        ["Restart" inf-crystal-restart]
+        ["Quit" inf-crystal-quit]))
+    map)
   "Mode map for `inf-crystal-mode'.")
-
-(easy-menu-define
-  inf-crystal-menu
-  inf-crystal-mode-map
-  "Inf Crystal Menu"
-  '("Inf-Crystal"
-    ["Eval Last Sexp" crystal-send-last-sexp t]
-    "--"
-    ["Enable paste mode" inf-crystal-enable-paste-mode t]
-    ["Disable paste mode" inf-crystal-disable-paste-mode t]
-    "--"
-    ["Toggle debug mode" inf-crystal-toggle-debug-mode t]
-    ["Reset repl" inf-crystal-reset t]))
 
 (define-derived-mode inf-crystal-mode comint-mode "Inf-Crystal"
   "Major mode for interacting with an icr process."
   :syntax-table crystal-mode-syntax-table
   (crystal-mode-variables)
+  (setq mode-line-process '(":%s"))
   (setq-local font-lock-defaults '((crystal-font-lock-keywords)))
   (setq comint-prompt-regexp inf-crystal-prompt)
   (setq comint-process-echoes t)
   (setq comint-input-ignoredups t)
-  (setq comint-get-old-input (function inf-crystal--get-old-input))
+  (setq comint-input-filter 'inf-crystal--input-filter)
+  (setq comint-get-old-input 'inf-crystal--get-old-input)
   (add-hook 'comint-preoutput-filter-functions 'inf-crystal--preoutput-filter nil t)
-  (set (make-local-variable 'comint-prompt-read-only) inf-crystal-prompt-read-only))
+  (setq-local comint-prompt-read-only inf-crystal-prompt-read-only)
+  (ansi-color-for-comint-mode-on))
 
 (defun inf-crystal--get-old-input()
   "Return a string containing the sexp ending at point."
@@ -150,6 +218,10 @@ the description of `inferior-lisp-buffer'.")
   (if (and (string-match "Ctrl-D" output) (string-match "paste mode" output))
       "\n"
     output))
+
+(defun inf-crystal--input-filter (str)
+  "Return t if STR does not match `inf-crystal-filter-regexp'."
+  (not (string-match inf-crystal-filter-regexp str)))
 
 (defun inf-crystal-reset ()
   "Clear out all of the accumulated commands."
@@ -173,6 +245,35 @@ In debug mode icr will print the code before executing it."
   (with-current-buffer (inf-crystal-buffer)
     (comint-send-eof)))
 
+(defun inf-crystal-clear-repl-buffer ()
+  "Clear the REPL buffer."
+  (interactive)
+  (let ((comint-buffer-maximum-size 0))
+    (comint-truncate-buffer)))
+
+(defun inf-crystal-quit (&optional buffer)
+  "Kill the REPL buffer and its underlying process.
+
+You can pass the target BUFFER as an optional parameter
+to suppress the usage of the target buffer discovery logic."
+  (interactive)
+  (let ((target-buffer (or buffer (inf-crystal-buffer))))
+    (when (get-buffer-process target-buffer)
+      (delete-process target-buffer))
+    (kill-buffer target-buffer)))
+
+(defun inf-crystal-restart (&optional buffer)
+  "Restart the REPL buffer and its underlying process.
+
+You can pass the target BUFFER as an optional parameter
+to suppress the usage of the target buffer discovery logic."
+  (interactive)
+  (let* ((target-buffer (or buffer (inf-crystal-buffer)))
+         (target-buffer-name (buffer-name target-buffer)))
+    (inf-crystal-quit target-buffer)
+    (inf-crystal inf-crystal-interpreter)
+    (rename-buffer target-buffer-name)))
+
 ;;;###autoload
 (defun inf-crystal (cmd)
   "Launch a crystal interpreter in a buffer.
@@ -189,7 +290,6 @@ the user to edit such value."
             (name "crystal"))
         (unless (member "--no-color" cmdlist)
           (setq cmdlist (append cmdlist '("--no-color"))))
-        (message (format "cmdlist: %s" cmdlist))
         (set-buffer (apply 'make-comint-in-buffer
                            name
                            (get-buffer-create inf-crystal-buffer-name)
@@ -198,7 +298,9 @@ the user to edit such value."
                            (cdr cmdlist)))
         (inf-crystal-mode)))
   (setq inf-crystal-buffer inf-crystal-buffer-name)
-  (pop-to-buffer inf-crystal-buffer-name))
+  (if inf-crystal-use-same-window
+      (pop-to-buffer-same-window inf-crystal-buffer-name)
+    (pop-to-buffer inf-crystal-buffer-name)))
 
 ;;;###autoload
 (defalias 'run-crystal 'inf-crystal)
@@ -333,6 +435,7 @@ Then switch to the process buffer."
     (define-key map (kbd "C-c M-r") 'crystal-send-region-and-go)
     (define-key map (kbd "C-c C-z") 'crystal-switch-to-inf)
     (define-key map (kbd "C-c C-s") 'inf-crystal)
+    (define-key map (kbd "C-c C-q") 'inf-crystal-quit)
     (easy-menu-define
       inf-crystal-minor-mode-menu
       map
@@ -346,7 +449,8 @@ Then switch to the process buffer."
         "--"
         ["Start REPL" inf-crystal t]
         ["Switch to REPL" crystal-switch-to-inf t]
-        ))
+        ["Restart REPL" inf-crystal-restart]
+        ["Quit REPL" inf-crystal-quit]))
     map))
 
 ;;;###autoload

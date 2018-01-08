@@ -1,11 +1,24 @@
 ## inf-crystal.el
-*Run a Inferior-Crystal process in a buffer*
+*Run a Inferior-Crystal process in a buffer -*- lexical-binding: t; -*-*
 
 ---
 [![License GPLv3](https://img.shields.io/badge/license-GPL_v3-green.svg)](http://www.gnu.org/licenses/gpl-3.0.html)
 
 inf-crystal provides a REPL buffer connected
 to a [icr](https://github.com/crystal-community/icr) subprocess.
+
+It's based on ideas from the popular `inferior-lisp` package.
+
+`inf-crystal` has two components - a basic crystal REPL
+and a minor mode (`inf-crystal-minor-mode`), which
+extends `crystal-mode` with commands to evaluate forms directly in the
+REPL.
+
+`inf-crystal` provides a set of essential features for interactive
+Crystal development:
+
+* REPL
+* Interactive code evaluation
 
 ### ICR
 
@@ -57,6 +70,24 @@ Enable paste mode.
 #### `(inf-crystal-disable-paste-mode)`
 
 Disable paste mode.
+
+#### `(inf-crystal-clear-repl-buffer)`
+
+Clear the REPL buffer.
+
+#### `(inf-crystal-quit &optional BUFFER)`
+
+Kill the REPL buffer and its underlying process.
+
+You can pass the target BUFFER as an optional parameter
+to suppress the usage of the target buffer discovery logic.
+
+#### `(inf-crystal-restart &optional BUFFER)`
+
+Restart the REPL buffer and its underlying process.
+
+You can pass the target BUFFER as an optional parameter
+to suppress the usage of the target buffer discovery logic.
 
 #### `(inf-crystal CMD)`
 
