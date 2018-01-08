@@ -171,9 +171,7 @@ whichever process buffer you want to use.")
     (define-key map (kbd "C-c C-r") 'inf-crystal-reset)
     (define-key map (kbd "C-c M-o") 'inf-crystal-clear-repl-buffer)
     (define-key map (kbd "C-c C-q") 'inf-crystal-quit)
-    (easy-menu-define
-      inf-crystal-menu
-      inf-crystal-mode-map
+    (easy-menu-define inf-crystal-mode-menu map
       "Inf Crystal Menu"
       '("Inf-Crystal"
         ["Eval Last Sexp" crystal-send-last-sexp t]
