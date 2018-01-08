@@ -1,4 +1,4 @@
-;;; inf-crystal.el --- Run a Inferior-Crystal process in a buffer -*- lexical-binding: t; -*-
+;;; inf-crystal.el --- Run a Inferior-Crystal process in a buffer
 
 ;; Copyright (C) 2017-2018 Brantou
 
