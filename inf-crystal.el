@@ -192,7 +192,7 @@ whichever process buffer you want to use.")
   "Major mode for interacting with an icr process."
   :syntax-table crystal-mode-syntax-table
   (crystal-mode-variables)
-  (setq mode-line-process '(":%s"))
+  (setq mode-line-process '(":%s on " (:eval (buffer-name inf-crystal-buffer))))
   (setq-local font-lock-defaults '((crystal-font-lock-keywords)))
   (setq comint-prompt-regexp inf-crystal-prompt)
   (setq comint-process-echoes t)

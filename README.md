@@ -97,11 +97,10 @@ Argument CMD defaults to ‘inf-crystal-interpreter’.
 When called interactively with ‘prefix-arg’, it allows
 the user to edit such value.
 
-<!-- Error: (wrong-number-of-arguments function 2) -->
+#### `(crystal-switch-to-inf EOB-P)`
 
-<!-- Error: (wrong-number-of-arguments function 2) -->
-
-<!-- Error: (wrong-number-of-arguments function 2) -->
+  Switch to the inf-crystal process buffer.
+With argument, positions cursor at end of buffer.
 
 #### `(crystal-send-last-sexp)`
 
