@@ -460,7 +460,5 @@ The following commands are available:
   :lighter " Icr"
   :keymap inf-crystal-minor-mode-map)
 
-;;;###autoload (add-hook 'crystal-mode-hook 'inf-crystal-minor-mode)
-
 (provide 'inf-crystal)
 ;;; inf-crystal.el ends here
