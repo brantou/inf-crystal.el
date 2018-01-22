@@ -42,7 +42,7 @@ don't want to run from a git checkout.
 You can install `inf-crystal` using the following command:
 
 ```elisp
-M-x package-install [RET] inf-crystal [RET]~
+M-x package-install [RET] inf-crystal [RET]
 ```
 
 or if you'd rather keep it in your dotfiles:
@@ -56,7 +56,7 @@ or if you'd rather keep it in your dotfiles:
 If the installation doesn't work try refreshing the package list:
 
 ```elisp
-M-x package-refresh-contents~
+M-x package-refresh-contents
 ```
 
 #### Manual
