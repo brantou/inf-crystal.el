@@ -4,6 +4,7 @@
 ---
 [![License GPLv3](https://img.shields.io/badge/license-GPL_v3-green.svg)](http://www.gnu.org/licenses/gpl-3.0.html)
 [![MELPA](https://melpa.org/packages/inf-crystal-badge.svg)](https://melpa.org/#/inf-crystal)
+[![MELPA Stable](https://stable.melpa.org/packages/inf-crystal-badge.svg)](https://stable.melpa.org/#/inf-crystal)
 
 inf-crystal provides a REPL buffer connected
 to a [icr](https://github.com/crystal-community/icr) subprocess.
@@ -31,7 +32,32 @@ the main page of [icr](https://github.com/crystal-community/icr#installation).
 
 #### Via package.el
 
-TODO
+Available on all major ~package.el~ community maintained repos -
+[MELPA Stable](https://stable.melpa.org/#/) and [MELPA](https://melpa.org/#/) repos.
+
+MELPA Stable is recommended as it has the latest stable version.
+MELPA has a development snapshot for users who don't mind breakage but
+don't want to run from a git checkout.
+
+You can install `inf-crystal` using the following command:
+
+```elisp
+M-x package-install [RET] inf-crystal [RET]~
+```
+
+or if you'd rather keep it in your dotfiles:
+
+```elisp
+  (unless (package-installed-p 'inf-crystal)
+    (package-refresh-contents)
+    (package-install 'inf-crystal))
+```
+
+If the installation doesn't work try refreshing the package list:
+
+```elisp
+M-x package-refresh-contents~
+```
 
 #### Manual
 
