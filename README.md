@@ -3,6 +3,7 @@
 
 ---
 [![License GPLv3](https://img.shields.io/badge/license-GPL_v3-green.svg)](http://www.gnu.org/licenses/gpl-3.0.html)
+[![MELPA](https://melpa.org/packages/inf-crystal-badge.svg)](https://melpa.org/#/inf-crystal)
 
 inf-crystal provides a REPL buffer connected
 to a [icr](https://github.com/crystal-community/icr) subprocess.
